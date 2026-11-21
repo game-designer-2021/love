@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>love ❤ — قلب يُرسَم</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: radial-gradient(ellipse at center, #3a0a1f 0%, #150008 60%, #000 100%);
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+  }
+  #heartCanvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    display: block;
+  }
+
+  /* العنوان العلوي */
+  #titleBar {
+    position: absolute; top: 22px; left: 0; right: 0;
+    text-align: center; z-index: 5; pointer-events: none;
+  }
+  #titleBar .ar {
+    color: #ffd6e0; font-size: 22px; letter-spacing: 1px;
+    font-weight: 600; text-shadow: 0 0 14px rgba(255,90,140,0.7);
+    direction: rtl;
+  }
+  #titleBar .love-title {
+    font-size: 30px; letter-spacing: 4px; font-weight: 700;
+    font-style: italic; direction: ltr;
+    background: linear-gradient(135deg, #fff 0%, #ffb3c6 50%, #ff4d6d 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 24px rgba(255,90,140,0.6);
+    filter: drop-shadow(0 0 12px rgba(255,77,109,0.4));
+    animation: loveGlow 2.4s infinite ease-in-out;
+  }
+  @keyframes loveGlow {
+    0%,100% { filter: drop-shadow(0 0 10px rgba(255,77,109,0.4)); }
+    50%     { filter: drop-shadow(0 0 20px rgba(255,77,109,0.75)); }
+  }
+  #titleBar .en {
+    color: #ff8fa3; font-size: 12px; margin-top: 6px;
+    opacity: 0.7; letter-spacing: 4px;
+  }
+
+  /* مشغّل الموسيقى */
+  #player {
+    position: fixed; bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    width: min(620px, 94vw);
+    background: rgba(30, 5, 15, 0.55);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border: 1px solid rgba(255, 120, 160, 0.25);
+    border-radius: 20px;
+    padding: 14px 18px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 30px rgba(255,80,120,0.15);
+    z-index: 50;
+    color: #ffd6e0;
+    direction: rtl;
+  }
+  #songTabs {
+    display: flex; gap: 6px; margin-bottom: 12px;
+    flex-wrap: wrap; justify-content: center;
+  }
+  #songTabs button {
+    flex: 1; min-width: 90px;
+    background: rgba(255, 100, 150, 0.08);
+    color: #ffb3c6; border: 1px solid rgba(255, 120, 160, 0.2);
+    padding: 8px 6px; font-size: 13px;
+    border-radius: 12px; cursor: pointer;
+    transition: all 0.25s;
+    font-family: inherit; font-weight: 600;
+    white-space: nowrap;
+  }
+  #songTabs button:hover {
+    background: rgba(255, 100, 150, 0.18);
+    color: #fff;
+  }
+  #songTabs button.active {
+    background: linear-gradient(135deg, rgba(255,77,109,0.9), rgba(201,24,74,0.9));
+    color: #fff; border-color: transparent;
+    box-shadow: 0 0 16px rgba(255,77,109,0.5);
+  }
+  #controls {
+    display: flex; align-items: center; gap: 14px;
+  }
+  #playBtn {
+    width: 52px; height: 52px; flex: 0 0 52px;
+    border-radius: 50%; border: none;
+    background: linear-gradient(135deg, #ff4d6d, #c9184a);
+    color: #fff; font-size: 22px; cursor: pointer;
+    box-shadow: 0 0 22px rgba(255,77,109,0.6), 0 4px 14px rgba(0,0,0,0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #playBtn:hover {
+    transform: scale(1.06);
+    box-shadow: 0 0 32px rgba(255,77,109,0.9);
+  }
+  #playBtn:active { transform: scale(0.96); }
+  #rightControls {
+    flex: 1; display: flex; align-items: center; gap: 10px;
+    min-width: 0;
+  }
+  #songInfo {
+    flex: 1; min-width: 0;
+    text-align: right; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  #songInfo .name {
+    font-size: 15px; font-weight: 600; color: #fff;
+    text-shadow: 0 0 8px rgba(255,90,140,0.5);
+  }
+  #songInfo .artist {
+    font-size: 12px; color: #ff8fa3; margin-top: 2px;
+    opacity: 0.85;
+  }
+  #volumeWrap {
+    display: flex; align-items: center; gap: 6px;
+    flex: 0 0 auto;
+  }
+  #volIcon { font-size: 18px; cursor: pointer; user-select: none; opacity: 0.9; }
+  #volSlider {
+    -webkit-appearance: none; appearance: none;
+    width: 90px; height: 5px;
+    background: rgba(255,180,200,0.2);
+    border-radius: 5px; outline: none; cursor: pointer;
+  }
+  #volSlider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px;
+    background: linear-gradient(135deg, #ff4d6d, #c9184a);
+    border-radius: 50%; cursor: pointer;
+    box-shadow: 0 0 10px rgba(255,77,109,0.6);
+  }
+  #volSlider::-moz-range-thumb {
+    width: 16px; height: 16px;
+    background: linear-gradient(135deg, #ff4d6d, #c9184a);
+    border-radius: 50%; cursor: pointer; border: none;
+    box-shadow: 0 0 10px rgba(255,77,109,0.6);
+  }
+
+  /* مشغّل يوتيوب مخفي */
+  #ytPlayer {
+    position: absolute; left: -9999px; top: -9999px;
+    width: 1px; height: 1px; border: 0;
+  }
+
+  /* قلوب طافية في الخلفية */
+  .floating-heart {
+    position: absolute; bottom: -40px;
+    color: rgba(255, 100, 150, 0.16);
+    pointer-events: none; user-select: none;
+    animation: floatUp linear forwards;
+    text-shadow: 0 0 8px rgba(255,80,120,0.4);
+  }
+  @keyframes floatUp {
+    0%   { transform: translateY(0) scale(0.4) rotate(0deg); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { transform: translateY(-110vh) scale(1.3) rotate(20deg); opacity: 0; }
+  }
+
+  /* تلميح البدء */
+  #hint {
+    position: fixed; bottom: 110px; left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 200, 220, 0.55); font-size: 12px;
+    z-index: 40; pointer-events: none;
+    animation: hintPulse 2s infinite ease-in-out;
+  }
+  @keyframes hintPulse {
+    0%,100% { opacity: 0.4; }
+    50% { opacity: 0.8; }
+  }
+
+  #credit {
+    position: absolute; bottom: 10px; right: 14px;
+    color: rgba(255,180,200,0.35); font-size: 11px;
+    z-index: 5; pointer-events: none; direction: rtl;
+  }
+
+  @media (max-width: 520px) {
+    #songTabs button { font-size: 10px; min-width: 0; padding: 7px 3px; letter-spacing: 0; }
+    #songTabs { gap: 4px; }
+    #playBtn { width: 46px; height: 46px; flex: 0 0 46px; font-size: 19px; }
+    #volSlider { width: 60px; }
+    #songInfo .name { font-size: 12px; }
+    #titleBar .love-title { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="heartCanvas"></canvas>
+
+<div id="titleBar">
+  <div class="ar love-title">love ❤</div>
+  <div class="en">H E A R T</div>
+</div>
+
+<div id="hint">اختر أغنية واضغط ▶ للتشغيل</div>
+
+<div id="player">
+  <div id="songTabs">
+    <button data-song="0" class="active">يا أجمل العيون</button>
+    <button data-song="1">لو على قلبي</button>
+    <button data-song="2">كل وعد</button>
+  </div>
+  <div id="controls">
+    <button id="playBtn" title="تشغيل/إيقاف">▶</button>
+    <div id="rightControls">
+      <div id="songInfo">
+        <div class="name">يا أجمل العيون</div>
+        <div class="artist">عمرو دياب</div>
+      </div>
+      <div id="volumeWrap">
+        <span id="volIcon">🔊</span>
+        <input type="range" id="volSlider" min="0" max="100" value="70">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="ytPlayer"></div>
+<div id="credit">صُنع بـ ❤</div>
+
+<script>
+/* ============================================================
+   قائمة الأغاني
+   ============================================================ */
+var SONGS = [
+  { id: 'HcodxmdesfY', name: 'يا أجمل العيون', artist: 'عمرو دياب' },
+  { id: 'elKpkk_I-_U', name: 'لو على قلبي',    artist: 'فضل شاكر' },
+  { id: 'y70feYy4MU0', name: 'كل وعد',         artist: 'وائل جسار' }
+];
+var currentSong = 0;
+
+/* ============================================================
+   YouTube IFrame API
+   ============================================================ */
+var tag = document.createElement('script');
+tag.src = "https://www.youtube.com/iframe_api";
+document.head.appendChild(tag);
+
+var player = null, playerReady = false;
+var isPlaying = false;
+
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player('ytPlayer', {
+    videoId: SONGS[0].id,
+    playerVars: {
+      autoplay: 0,
+      controls: 0,
+      loop: 1,
+      playlist: SONGS[0].id,
+      modestbranding: 1,
+      rel: 0,
+      showinfo: 0,
+      iv_load_policy: 3
+    },
+    events: {
+      onReady: function() {
+        playerReady = true;
+        try { player.setVolume(70); } catch(_) {}
+      },
+      onStateChange: function(e) {
+        if (e.data === YT.PlayerState.PLAYING) {
+          isPlaying = true;
+          updatePlayBtn();
+        } else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) {
+          isPlaying = false;
+          updatePlayBtn();
+        }
+        if (e.data === YT.PlayerState.ENDED) {
+          try { player.seekTo(0); player.playVideo(); } catch(_) {}
+        }
+      }
+    }
+  });
+}
+
+function updatePlayBtn() {
+  document.getElementById('playBtn').textContent = isPlaying ? '⏸' : '▶';
+}
+
+/* ============================================================
+   عناصر التحكم
+   ============================================================ */
+document.getElementById('playBtn').addEventListener('click', function() {
+  if (!playerReady || !player) return;
+  try {
+    if (isPlaying) { player.pauseVideo(); }
+    else {
+      player.mute();
+      player.playVideo();
+      setTimeout(function() {
+        try { player.unMute(); player.setVolume(currentVol()); } catch(_) {}
+      }, 600);
+    }
+  } catch(_) {}
+});
+
+document.querySelectorAll('#songTabs button').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var idx = parseInt(btn.getAttribute('data-song'), 10);
+    if (idx === currentSong) return;
+    currentSong = idx;
+    document.querySelectorAll('#songTabs button').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    var song = SONGS[idx];
+    document.querySelector('#songInfo .name').textContent = song.name;
+    document.querySelector('#songInfo .artist').textContent = song.artist;
+    if (playerReady && player) {
+      try {
+        player.loadVideoById(song.id);
+        player.mute();
+        player.playVideo();
+        setTimeout(function() {
+          try { player.unMute(); player.setVolume(currentVol()); } catch(_) {}
+        }, 600);
+      } catch(_) {}
+    }
+  });
+});
+
+function currentVol() {
+  return parseInt(document.getElementById('volSlider').value, 10);
+}
+
+document.getElementById('volSlider').addEventListener('input', function() {
+  if (playerReady && player) {
+    try {
+      var v = parseInt(this.value, 10);
+      player.setVolume(v);
+      if (v === 0) document.getElementById('volIcon').textContent = '🔇';
+      else if (v < 40) document.getElementById('volIcon').textContent = '🔉';
+      else document.getElementById('volIcon').textContent = '🔊';
+    } catch(_) {}
+  }
+});
+
+document.getElementById('volIcon').addEventListener('click', function() {
+  var slider = document.getElementById('volSlider');
+  if (parseInt(slider.value, 10) > 0) {
+    slider.dataset.prev = slider.value;
+    slider.value = 0;
+    this.textContent = '🔇';
+  } else {
+    var prev = slider.dataset.prev || 70;
+    slider.value = prev;
+    this.textContent = parseInt(prev, 10) < 40 ? '🔉' : '🔊';
+  }
+  slider.dispatchEvent(new Event('input'));
+});
+
+/* ============================================================
+   لوحة الرسم — قلب يُرسم بخط متواصل متوهج (بدون أي كلمات)
+   ============================================================ */
+var canvas = document.getElementById('heartCanvas');
+var ctx = canvas.getContext('2d');
+var W, H, cx, cy, heartScale, heartOffsetY;
+
+function heartMath(t) {
+  return {
+    x: 16 * Math.pow(Math.sin(t), 3),
+    y: 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)
+  };
+}
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  cx = W / 2;
+  cy = H / 2 + 10;
+  heartScale = Math.min(W * 0.85 / 34, H * 0.65 / 32);
+  heartOffsetY = 2.5;
+}
+resize();
+window.addEventListener('resize', resize);
+
+function toScreen(mx, my) {
+  return {
+    x: cx + mx * heartScale,
+    y: cy - (my + heartOffsetY) * heartScale
+  };
+}
+
+/* إيقاع نبض القلب (lub-dub) */
+function heartbeatScale(elapsed) {
+  var period = 1.1; // ثانية لكل نبضة
+  var phase = (elapsed % period) / period;
+  var beat = 0;
+  if (phase < 0.08) beat = Math.sin(phase * Math.PI / 0.08) * 0.07;
+  else if (phase < 0.18) beat = 0;
+  else if (phase < 0.26) beat = Math.sin((phase - 0.18) * Math.PI / 0.08) * 0.05;
+  return beat;
+}
+
+var penT = 0;                 // معامل القلم الحالي
+var drawnProgress = 0;        // كم من القلب رُسم (0 → 2π)
+var trail = [];               // أثر القلم المتوهج
+var startTime = performance.now();
+
+function drawHeartPath(tStart, tEnd, scale) {
+  if (tEnd <= tStart) return;
+  var steps = Math.max(2, Math.ceil((tEnd - tStart) / 0.015));
+  /* ثلاث طبقات توهج */
+  var layers = [
+    { w: 14, color: 'rgba(255, 70, 110, 0.18)',  blur: 30 },
+    { w: 7,  color: 'rgba(255, 110, 150, 0.45)', blur: 18 },
+    { w: 2.5,color: 'rgba(255, 220, 235, 0.95)', blur: 6  }
+  ];
+  for (var li = 0; li < layers.length; li++) {
+    var L = layers[li];
+    ctx.beginPath();
+    for (var i = 0; i <= steps; i++) {
+      var t = tStart + (tEnd - tStart) * (i / steps);
+      var p = heartMath(t);
+      var s = toScreen(p.x * scale, p.y * scale);
+      if (i === 0) ctx.moveTo(s.x, s.y);
+      else ctx.lineTo(s.x, s.y);
+    }
+    ctx.strokeStyle = L.color;
+    ctx.lineWidth = L.w;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = 'rgba(255, 80, 120, 0.9)';
+    ctx.shadowBlur = L.blur;
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+}
+
+function draw() {
+  var now = performance.now();
+  var elapsed = (now - startTime) / 1000;
+
+  ctx.clearRect(0, 0, W, H);
+
+  /* تقدّم القلم — حركة متواصلة دون تقطّع */
+  var speed = 0.022;
+  penT += speed;
+  if (penT >= Math.PI * 2) {
+    penT -= Math.PI * 2;
+    drawnProgress = Math.PI * 2;
+  } else if (drawnProgress < Math.PI * 2) {
+    drawnProgress = penT;
+  }
+
+  /* نبض القلب */
+  var beat = heartbeatScale(elapsed);
+  var scale = 1 + beat;
+
+  /* 1) القلب المرسوم (دائم) */
+  drawHeartPath(0, drawnProgress, scale);
+
+  /* 2) أثر القلم المتوهج (مؤقت) */
+  var penP = heartMath(penT);
+  var penS = toScreen(penP.x * scale, penP.y * scale);
+  trail.push({ x: penS.x, y: penS.y, born: now });
+  if (trail.length > 32) trail.shift();
+  for (var i = 0; i < trail.length; i++) {
+    var g = trail[i];
+    var age = (now - g.born) / 1000;
+    var a = Math.max(0, 1 - age * 2.2);
+    if (a <= 0) continue;
+    ctx.globalAlpha = a * 0.55;
+    ctx.fillStyle = '#ff6b9d';
+    ctx.beginPath();
+    ctx.arc(g.x, g.y, 3 + a * 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  /* 3) رأس القلم — نقطة بيضاء متوهجة */
+  ctx.beginPath();
+  ctx.arc(penS.x, penS.y, 9, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = 'rgba(255, 100, 150, 1)';
+  ctx.shadowBlur = 45;
+  ctx.fill();
+  /* هالة أكبر */
+  ctx.beginPath();
+  ctx.arc(penS.x, penS.y, 16, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 150, 180, 0.25)';
+  ctx.shadowBlur = 60;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  requestAnimationFrame(draw);
+}
+draw();
+
+/* ============================================================
+   قلوب طافية في الخلفية
+   ============================================================ */
+function spawnFloatingHeart() {
+  var el = document.createElement('div');
+  el.className = 'floating-heart';
+  el.textContent = Math.random() < 0.7 ? '❤' : '♥';
+  el.style.left = Math.random() * 100 + 'vw';
+  el.style.fontSize = (12 + Math.random() * 26) + 'px';
+  var dur = 9 + Math.random() * 8;
+  el.style.animationDuration = dur + 's';
+  document.body.appendChild(el);
+  setTimeout(function() { el.remove(); }, dur * 1000 + 200);
+}
+setInterval(spawnFloatingHeart, 650);
+for (var i = 0; i < 8; i++) setTimeout(spawnFloatingHeart, i * 300);
+</script>
+</body>
+</html>
